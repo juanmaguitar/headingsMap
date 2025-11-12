@@ -24,8 +24,8 @@
     "html/*"
   ],
   "options_ui": {
-    "page": "options/options.html",
-    "chrome_style": true
+    "page": "options.html",
+    "chrome_style": false
   },
   "commands": {
     "_execute_browser_action": {

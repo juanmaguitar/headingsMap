@@ -1,0 +1,43 @@
+@import "tailwindcss";
+
+/* Custom styles for the extension */
+.tree-item {
+  position: relative;
+  padding-left: 1.5rem;
+  margin-top: 0.25rem;
+  margin-bottom: 0.25rem;
+  line-height: 1.625;
+}
+
+.tree-item-last {
+  background-repeat: no-repeat;
+}
+
+.heading-link {
+  cursor: pointer;
+  text-decoration: none;
+  color: rgb(55 65 81);
+}
+
+.heading-link:hover {
+  color: rgb(37 99 235);
+}
+
+.heading-link:focus {
+  outline: none;
+}
+
+.heading-level {
+  font-size: 0.75rem;
+  color: rgb(107 114 128);
+  margin-left: 0.25rem;
+}
+
+.heading-error {
+  color: rgb(220 38 38);
+}
+
+.no-headed {
+  color: rgb(156 163 175);
+  font-style: italic;
+}
