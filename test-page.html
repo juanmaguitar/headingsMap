@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Page for HeadingsMap</title>
+    <style>
+        body {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+        }
+        h1, h2, h3, h4, h5, h6 {
+            margin-top: 1em;
+            margin-bottom: 0.5em;
+        }
+        section {
+            margin-bottom: 2em;
+        }
+    </style>
+</head>
+<body>
+    <h1>Main Title - Level 1</h1>
+    <p>This is a test page to verify the HeadingsMap extension functionality.</p>
+    
+    <section>
+        <h2>Section 1 - Level 2</h2>
+        <p>Some content for section 1.</p>
+        
+        <h3>Subsection 1.1 - Level 3</h3>
+        <p>More detailed content in subsection 1.1.</p>
+        
+        <h3>Subsection 1.2 - Level 3</h3>
+        <p>More detailed content in subsection 1.2.</p>
+    </section>
+    
+    <section>
+        <h2>Section 2 - Level 2</h2>
+        <p>Some content for section 2.</p>
+        
+        <h3>Subsection 2.1 - Level 3</h3>
+        <p>Content in subsection 2.1.</p>
+        
+        <h4>Sub-subsection 2.1.1 - Level 4</h4>
+        <p>Deeper nested content.</p>
+    </section>
+    
+    <!-- This should trigger an error: jumping from h2 to h4 -->
+    <section>
+        <h2>Section 3 - Level 2</h2>
+        <p>This section has a heading structure error.</p>
+        
+        <h4>This is an ERROR - Should be h3, not h4</h4>
+        <p>This heading level jump should be detected as an error.</p>
+    </section>
+    
+    <section>
+        <h2>Section 4 - Level 2</h2>
+        <p>Final section with proper structure.</p>
+        
+        <h3>Subsection 4.1 - Level 3</h3>
+        <p>Everything is properly structured here.</p>
+    </section>
+</body>
+</html>
