@@ -1,6 +1,5 @@
-import React, { useEffect, useState, useRef, useCallback } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
-import '../styles/main.css';
 import { Settings, Message } from '../types';
 
 const defaultSettings: Settings = {
@@ -30,6 +29,7 @@ const HeadingsMapWidget: React.FC<{ settings: Settings; onClose: () => void }> =
   const port = useRef(chrome.runtime.connect({ name: 'port-from-cs' }));
   const headingsRef = useRef<HTMLDivElement>(null);
   const outlineRef = useRef<HTMLDivElement>(null);
+  const wrapperRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     updateContent();
@@ -47,19 +47,34 @@ const HeadingsMapWidget: React.FC<{ settings: Settings; onClose: () => void }> =
     return () => observer.disconnect();
   }, [settings]);
 
-  // Setup event listeners for rendered content
+  // Setup event listeners for rendered content and collapsers
   useEffect(() => {
-    const container = activeTab === 'headings' ? headingsRef.current : outlineRef.current;
-    if (!container) return;
+    const wrapper = wrapperRef.current;
+    if (!wrapper) return;
 
     // Add click handlers for headings
-    const headingLinks = container.querySelectorAll('a[data-header-id]');
+    const headingLinks = wrapper.querySelectorAll('a[data-header-id]');
     headingLinks.forEach(link => {
       link.addEventListener('click', handleHeadingClick);
     });
 
-    // Add click handlers for collapsers
-    const collapsers = container.querySelectorAll('.collapser');
+    // Add collapsers to nested lists
+    const nestedLists = wrapper.querySelectorAll('ul ul');
+    nestedLists.forEach((list: Element) => {
+      if (list instanceof HTMLElement && list.parentNode) {
+        // Check if collapser already exists
+        const prevSibling = list.previousSibling;
+        if (!prevSibling || !(prevSibling as Element).classList?.contains('collapser')) {
+          const collapser = document.createElement('span');
+          collapser.className = 'collapser';
+          collapser.addEventListener('click', handleCollapserClick);
+          list.parentNode.insertBefore(collapser, list);
+        }
+      }
+    });
+
+    // Add click handlers for existing collapsers
+    const collapsers = wrapper.querySelectorAll('.collapser');
     collapsers.forEach(collapser => {
       collapser.addEventListener('click', handleCollapserClick);
     });
@@ -389,11 +404,7 @@ const HeadingsMapWidget: React.FC<{ settings: Settings; onClose: () => void }> =
           headingHTML = `<span${errorClass} title=" Untitled (${headingText})">${elemText} Untitled (${headingText})</span>`;
         }
 
-        html += '<li>';
-        if (section.sections && section.sections.length > 0) {
-          html += `<span class="collapser"></span>`;
-        }
-        html += headingHTML;
+        html += '<li>' + headingHTML;
         
         if (section.sections && section.sections.length > 0) {
           html += generateOutlineHTML(section.sections, level + 1);
@@ -473,78 +484,38 @@ const HeadingsMapWidget: React.FC<{ settings: Settings; onClose: () => void }> =
   }, []);
 
   return (
-    <div className="fixed left-0 top-0 h-full w-80 bg-white shadow-lg overflow-auto z-[100000]">
-      <div className="sticky top-0 bg-white border-b border-gray-200 p-4">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-lg font-semibold text-gray-800">HeadingsMap</h2>
-          <div className="flex gap-2">
-            <button
-              onClick={handleRefresh}
-              className="p-2 hover:bg-gray-100 rounded"
-              title="Refresh"
-              id="headingsMap_refresh"
-            >
-              🔄
-            </button>
-            <button
-              onClick={handleSettings}
-              className="p-2 hover:bg-gray-100 rounded"
-              title="Settings"
-              id="headingsMap_settings"
-            >
-              ⚙️
-            </button>
-            <button
-              onClick={onClose}
-              className="p-2 hover:bg-gray-100 rounded"
-              title="Close"
-              id="headingsMap_closer"
-            >
-              ✕
-            </button>
-          </div>
-        </div>
-        
-        <div className="flex gap-2">
-          <button
-            onClick={() => handleTabSwitch('headings')}
-            className={`flex-1 py-2 px-4 rounded text-sm ${
-              activeTab === 'headings'
-                ? 'bg-blue-500 text-white active'
-                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-            }`}
-            id="headingsTab"
-          >
-            Headings Structure
-          </button>
-          <button
-            onClick={() => handleTabSwitch('outline')}
-            className={`flex-1 py-2 px-4 rounded text-sm ${
-              activeTab === 'outline'
-                ? 'bg-blue-500 text-white active'
-                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-            }`}
-            id="outlineTab"
-          >
-            HTML5 Outline
-          </button>
-        </div>
-      </div>
+    <div id="headingsMapWrapper" ref={wrapperRef}>
+      <a id="headingsMap_refresh" onClick={handleRefresh} title="Refresh"></a>
+      <a id="headingsMap_settings" onClick={handleSettings} title="Settings"></a>
+      <a id="headingsMap_closer" onClick={onClose} title="Close"></a>
+      
+      <a
+        id="headingsTab"
+        className={activeTab === 'headings' ? 'active' : ''}
+        onClick={() => handleTabSwitch('headings')}
+      >
+        Headings Structure
+      </a>
+      <a
+        id="outlineTab"
+        className={activeTab === 'outline' ? 'active' : ''}
+        onClick={() => handleTabSwitch('outline')}
+      >
+        HTML5 Outline
+      </a>
 
-      <div className="p-0" id="headingsMapWrapper">
-        <div
-          ref={headingsRef}
-          id="headingsMap_headings"
-          style={{ display: activeTab === 'headings' ? 'block' : 'none' }}
-          dangerouslySetInnerHTML={{ __html: headingsHTML }}
-        />
-        <div
-          ref={outlineRef}
-          id="headingsMap_outline"
-          style={{ display: activeTab === 'outline' ? 'block' : 'none' }}
-          dangerouslySetInnerHTML={{ __html: outlineHTML }}
-        />
-      </div>
+      <div
+        ref={headingsRef}
+        id="headingsMap_headings"
+        style={{ display: activeTab === 'headings' ? 'block' : 'none' }}
+        dangerouslySetInnerHTML={{ __html: headingsHTML }}
+      />
+      <div
+        ref={outlineRef}
+        id="headingsMap_outline"
+        style={{ display: activeTab === 'outline' ? 'block' : 'none' }}
+        dangerouslySetInnerHTML={{ __html: outlineHTML }}
+      />
     </div>
   );
 };
@@ -557,7 +528,9 @@ const HeadingsMapWidget: React.FC<{ settings: Settings; onClose: () => void }> =
   (window as any).hasHeadingsMapRun = true;
 
   let widgetRoot: ReturnType<typeof createRoot> | null = null;
-  let widgetContainer: HTMLDivElement | null = null;
+  let iframeWidget: HTMLIFrameElement | null = null;
+  let iframeContentDocument: Document | null = null;
+  let iframeBody: HTMLElement | null = null;
   let bodyMutationEndingObserver: MutationObserver | null = null;
 
   chrome.runtime.onMessage.addListener((message: Message) => {
@@ -576,18 +549,57 @@ const HeadingsMapWidget: React.FC<{ settings: Settings; onClose: () => void }> =
   });
 
   function openWidget(settings: Settings) {
-    widgetContainer = document.createElement('div');
-    widgetContainer.id = 'headingsMapIframeWrapper';
-    document.body.parentNode!.insertBefore(widgetContainer, document.body);
-    document.documentElement.setAttribute('data-headings-map-active', 'true');
+    createIframeWidget(settings);
+  }
+
+  function createIframeWidget(settings: Settings) {
+    const baseURL = chrome.runtime.getURL('html/');
     
-    // Apply body margin
+    iframeWidget = document.createElement('iframe');
+    iframeWidget.id = 'headingsMapIframeWrapper';
+    iframeWidget.style.cssText = 'position: fixed !important; height: 100% !important; margin: 0 !important; left: 0 !important; z-index: 100000 !important; overflow: auto !important; background: #FFFFFF !important; width: 350px !important; box-shadow: 0 0 5px rgba(50, 50, 50, .7) !important;';
+    
+    document.body.parentNode!.insertBefore(iframeWidget, document.body);
+    document.documentElement.setAttribute('data-headings-map-active', 'true');
     document.body.style.marginLeft = '350px';
 
-    widgetRoot = createRoot(widgetContainer);
-    widgetRoot.render(
-      <HeadingsMapWidget settings={settings} onClose={closeWidget} />
-    );
+    const iframeContentWindow = iframeWidget.contentWindow;
+    if (!iframeContentWindow) return;
+
+    iframeContentWindow.stop();
+    iframeContentDocument = iframeContentWindow.document;
+    iframeBody = iframeContentDocument.body;
+
+    // Load CSS
+    const xmlhttp = new XMLHttpRequest();
+    xmlhttp.open('GET', baseURL + 'style.css', true);
+    
+    xmlhttp.onload = function (e) {
+      if (xmlhttp.readyState === 4 && xmlhttp.status === 200 && iframeContentDocument && iframeBody) {
+        const iframeCSS = xmlhttp.responseText;
+        const iframeHead = '<base href="' + baseURL + '" /><style>' + iframeCSS + '</style>';
+        iframeContentDocument.head.innerHTML = iframeHead;
+
+        // Create container for React
+        const reactContainer = iframeContentDocument.createElement('div');
+        iframeBody.appendChild(reactContainer);
+
+        widgetRoot = createRoot(reactContainer);
+        widgetRoot.render(
+          <HeadingsMapWidget settings={settings} onClose={closeWidget} />
+        );
+
+        // Switch to saved panel
+        const savedTab = localStorage.getItem('headingsMap_selectedTab');
+        // Tab switching is handled by React component
+      }
+    };
+    
+    xmlhttp.onerror = function (e) {
+      console.error('Failed to load CSS for headingsMap');
+    };
+    
+    xmlhttp.send(null);
   }
 
   function updateWidget(settings: Settings) {
@@ -599,17 +611,23 @@ const HeadingsMapWidget: React.FC<{ settings: Settings; onClose: () => void }> =
   }
 
   function closeWidget() {
-    if (widgetRoot && widgetContainer) {
+    if (widgetRoot) {
       widgetRoot.unmount();
-      widgetContainer.remove();
       widgetRoot = null;
-      widgetContainer = null;
-      document.documentElement.removeAttribute('data-headings-map-active');
-      document.body.style.marginLeft = '';
-      
-      if (bodyMutationEndingObserver) {
-        bodyMutationEndingObserver.disconnect();
-      }
+    }
+    
+    if (iframeWidget && iframeWidget.parentNode) {
+      iframeWidget.parentNode.removeChild(iframeWidget);
+      iframeWidget = null;
+    }
+    
+    iframeContentDocument = null;
+    iframeBody = null;
+    document.documentElement.removeAttribute('data-headings-map-active');
+    document.body.style.marginLeft = '';
+    
+    if (bodyMutationEndingObserver) {
+      bodyMutationEndingObserver.disconnect();
     }
   }
 })();
